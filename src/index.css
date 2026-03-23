@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/* ─── Design System: Editorial / Revista de Arquitetura ─── */
+
+@theme {
+  --color-bg-primary: #FAFAF8;
+  --color-bg-secondary: #F0EFEB;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #6B6B6B;
+  --color-text-muted: #9B9B9B;
+  --color-accent: #1E3A5F;
+  --color-accent-light: #2E5A8F;
+  --color-accent-lighter: #4A7AB5;
+  --color-border: rgba(0,0,0,0.06);
+  --color-border-strong: rgba(0,0,0,0.12);
+  --color-success: #2D7D46;
+  --color-success-light: #E8F5E9;
+  --color-error: #C4302B;
+  --color-error-light: #FDE8E8;
+  --color-warning: #E6920E;
+
+  /* Crop colors */
+  --color-crop-bp: #22c55e;
+  --color-crop-dre: #3b82f6;
+  --color-crop-dfc: #f97316;
+
+  --font-serif: 'DM Serif Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Base ─── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+::selection {
+  background: rgba(30, 58, 95, 0.12);
+  color: var(--color-text-primary);
+}
+
+/* ─── Utilities ─── */
+.font-editorial { font-family: var(--font-serif); }
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Components ─── */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3
+         bg-accent text-white text-sm font-medium tracking-wide uppercase
+         border border-accent
+         hover:bg-accent-light active:scale-[0.98]
+         transition-all duration-200
+         disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3
+         bg-transparent text-text-primary text-sm font-medium tracking-wide uppercase
+         border border-border-strong
+         hover:bg-bg-secondary active:scale-[0.98]
+         transition-all duration-200;
+}
+
+.card {
+  @apply bg-surface border border-border;
+}
