@@ -36,14 +36,55 @@ export async function startProcessing(
 export function subscribeStatus(
   jobId: string,
   onMessage: (data: { status: string; progress: number; message: string }) => void,
-  onError?: (err: Event) => void
-): EventSource {
-  const es = new EventSource(`${JORNAL_API}/api/status/${jobId}`);
-  es.onmessage = (event) => {
-    try { onMessage(JSON.parse(event.data)); } catch { /* ignore */ }
+  onError?: (err: string) => void
+): { close: () => void } {
+  let es: EventSource | null = null;
+  let retries = 0;
+  const MAX_RETRIES = 8;
+  let closed = false;
+
+  function connect() {
+    if (closed) return;
+    es = new EventSource(`${JORNAL_API}/api/status/${jobId}`);
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        retries = 0; // reset on successful message
+        onMessage(data);
+
+        if (data.status === "completed" || data.status === "done" || data.status === "error") {
+          es?.close();
+          closed = true;
+        }
+      } catch { /* ignore parse errors */ }
+    };
+
+    es.onerror = () => {
+      es?.close();
+      if (closed) return;
+
+      retries++;
+      if (retries > MAX_RETRIES) {
+        onError?.("Conexão perdida após múltiplas tentativas. Tente novamente.");
+        closed = true;
+        return;
+      }
+
+      const delay = Math.min(2000 * Math.pow(1.5, retries - 1), 30000);
+      console.log(`[SSE] Reconectando (tentativa ${retries}/${MAX_RETRIES}) em ${Math.round(delay / 1000)}s...`);
+      setTimeout(connect, delay);
+    };
+  }
+
+  connect();
+
+  return {
+    close: () => {
+      closed = true;
+      es?.close();
+    }
   };
-  es.onerror = (err) => { onError?.(err); es.close(); };
-  return es;
 }
 
 export function getDownloadUrl(jobId: string): string {

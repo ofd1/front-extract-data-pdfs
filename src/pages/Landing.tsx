@@ -22,17 +22,17 @@ const cards = [
 
 export default function Landing({ onSelect }: LandingProps) {
   return (
-    <section className="animate-fade-in max-w-5xl mx-auto px-6 md:px-12 py-24">
-      <div className="mb-16">
-        <h1 className="font-editorial text-4xl md:text-5xl text-text-primary tracking-tight leading-tight" style={{ letterSpacing: "-0.02em" }}>
+    <section className="animate-fade-in flex flex-col items-center justify-center min-h-[70vh] px-6">
+      <div className="mb-16 text-center">
+        <h1 className="font-editorial text-5xl md:text-6xl text-text-primary tracking-tight leading-tight" style={{ letterSpacing: "-0.02em" }}>
           Extraia dados de<br />seus documentos
         </h1>
-        <p className="mt-4 text-text-secondary text-base md:text-lg max-w-lg">
+        <p className="mt-4 text-text-secondary text-lg md:text-xl max-w-lg mx-auto">
           Selecione o tipo de documento para iniciar
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
         {cards.map((card) => (
           <button
             key={card.page}

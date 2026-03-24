@@ -81,6 +81,9 @@ export default function ProcessingView({ jobId, companies, onDone, onRetry }: Pr
         {isDone ? "Concluído!" : "Processando..."}
       </h2>
       <p className="text-sm text-text-secondary">{message || "Aguarde..."}</p>
+      <p className="text-xs text-text-muted mt-3">
+        Cada recorte é analisado via IA para extrair dados financeiros
+      </p>
     </div>
   );
 }

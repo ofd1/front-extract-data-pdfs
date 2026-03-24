@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { startProcessing, subscribeStatus } from "../api/jornal";
+import { humanizeError } from "../utils/errors";
 import type { Company } from "../types";
 
 export interface ProcessingState {
@@ -20,12 +21,12 @@ export function useProcessing() {
     isDone: false,
     error: null,
   });
-  const esRef = useRef<EventSource | null>(null);
+  const subRef = useRef<{ close: () => void } | null>(null);
 
-  useEffect(() => () => { esRef.current?.close(); }, []);
+  useEffect(() => () => { subRef.current?.close(); }, []);
 
   const startProcess = useCallback(async (jobId: string, companies: Company[]) => {
-    esRef.current?.close();
+    subRef.current?.close();
     setState({
       status: "starting",
       progress: 0,
@@ -37,7 +38,7 @@ export function useProcessing() {
     try {
       const res = await startProcessing(jobId, companies);
       const resolvedId = res.jobId || jobId;
-      esRef.current = subscribeStatus(
+      subRef.current = subscribeStatus(
         resolvedId,
         (data) => {
           const isDone = data.status === "completed" || data.status === "done";
@@ -51,21 +52,21 @@ export function useProcessing() {
             error: isError ? data.message : null,
           });
           if (isDone || isError) {
-            esRef.current?.close();
-            esRef.current = null;
+            subRef.current?.close();
+            subRef.current = null;
           }
         },
-        () => {
+        (errMsg) => {
           setState((prev) =>
             prev.isDone || prev.error
               ? prev
-              : { ...prev, isProcessing: false, error: "Conexão perdida. Tente novamente." }
+              : { ...prev, isProcessing: false, error: errMsg }
           );
         }
       );
       return resolvedId;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro ao iniciar.";
+      const msg = err instanceof Error ? humanizeError(err.message) : "Erro ao iniciar.";
       setState({
         status: "error",
         progress: 0,
@@ -79,8 +80,8 @@ export function useProcessing() {
   }, []);
 
   const reset = useCallback(() => {
-    esRef.current?.close();
-    esRef.current = null;
+    subRef.current?.close();
+    subRef.current = null;
     setState({
       status: "idle",
       progress: 0,

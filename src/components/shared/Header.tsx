@@ -14,7 +14,7 @@ export default function Header({ activePage, onNavigateHome }: HeaderProps) {
 
   return (
     <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="max-w-5xl mx-auto px-6 md:px-12 h-16 flex items-center justify-between">
+      <div className="max-w-4xl mx-auto px-6 md:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-4">
           {activePage !== "landing" && (
             <button
@@ -27,7 +27,7 @@ export default function Header({ activePage, onNavigateHome }: HeaderProps) {
           )}
           <button
             onClick={onNavigateHome}
-            className="font-editorial text-xl tracking-tight text-text-primary hover:text-accent transition-colors"
+            className="font-editorial text-xl font-bold tracking-tight text-text-primary hover:text-accent transition-colors"
           >
             AF Extrator
           </button>

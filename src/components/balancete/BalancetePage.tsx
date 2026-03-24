@@ -1,10 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { CheckCircle, AlertCircle, Download, RotateCcw, ArrowLeft } from "lucide-react";
+import { CheckCircle, AlertCircle, Download, RotateCcw, ArrowLeft, Loader2 } from "lucide-react";
 import type { BalanceteState } from "../../types";
 import { extractBalancete } from "../../api/balancete";
 import DropZone from "../shared/DropZone";
 import FileList from "../shared/FileList";
-import ProgressBar from "../shared/ProgressBar";
+
+const ETAPAS = [
+  "Enviando arquivos ao servidor...",
+  "Extraindo dados via IA — isso pode levar alguns minutos...",
+  "Processando páginas e normalizando valores...",
+  "Classificando contas contábeis...",
+  "Gerando Excel consolidado...",
+];
 
 interface BalancetePageProps {
   onBack: () => void;
@@ -13,7 +20,7 @@ interface BalancetePageProps {
 export default function BalancetePage({ onBack }: BalancetePageProps) {
   const [state, setState] = useState<BalanceteState>("upload");
   const [files, setFiles] = useState<File[]>([]);
-  const [progress, setProgress] = useState(0);
+  const [etapaIndex, setEtapaIndex] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
   const blobRef = useRef<Blob | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -30,20 +37,16 @@ export default function BalancetePage({ onBack }: BalancetePageProps) {
   const handleExtract = useCallback(async () => {
     if (!files.length) return;
     setState("processing");
-    setProgress(0);
+    setEtapaIndex(0);
 
     intervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 85) return prev + 0.1;
-        return prev + (85 - prev) * 0.02;
-      });
-    }, 300);
+      setEtapaIndex((prev) => (prev + 1) % ETAPAS.length);
+    }, 15000);
 
     try {
       const blob = await extractBalancete(files);
       clearInterval_();
       blobRef.current = blob;
-      setProgress(100);
       setTimeout(() => setState("done"), 400);
     } catch (err) {
       clearInterval_();
@@ -65,13 +68,13 @@ export default function BalancetePage({ onBack }: BalancetePageProps) {
   const handleReset = () => {
     setState("upload");
     setFiles([]);
-    setProgress(0);
+    setEtapaIndex(0);
     setErrorMsg("");
     blobRef.current = null;
   };
 
   return (
-    <section className="animate-fade-in max-w-5xl mx-auto px-6 md:px-12 py-16">
+    <section className="animate-fade-in max-w-2xl mx-auto px-6 md:px-8 py-16">
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors mb-12"
@@ -81,16 +84,16 @@ export default function BalancetePage({ onBack }: BalancetePageProps) {
       </button>
 
       <div className="mb-12">
-        <h1 className="font-editorial text-3xl md:text-4xl text-text-primary tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+        <h1 className="font-editorial text-4xl md:text-5xl text-text-primary tracking-tight" style={{ letterSpacing: "-0.02em" }}>
           Extração de Balancetes
         </h1>
-        <p className="mt-3 text-text-secondary text-sm">
+        <p className="mt-3 text-text-secondary text-base md:text-lg">
           Envie PDFs ou ZIPs de balancetes contábeis e receba um Excel consolidado
         </p>
       </div>
 
       {state === "upload" && (
-        <div className="animate-slide-up max-w-2xl">
+        <div className="animate-slide-up">
           <DropZone
             accept=".pdf,.zip"
             label="Arraste seus PDFs ou ZIPs aqui"
@@ -109,14 +112,19 @@ export default function BalancetePage({ onBack }: BalancetePageProps) {
       )}
 
       {state === "processing" && (
-        <div className="animate-slide-up max-w-2xl space-y-6">
-          <ProgressBar progress={progress} label="Processando seus arquivos..." />
-          <p className="text-sm text-text-muted">Isso pode levar alguns minutos</p>
+        <div className="animate-slide-up text-center py-12 space-y-6">
+          <Loader2 size={48} className="text-accent animate-spin mx-auto" strokeWidth={1.5} />
+          <div>
+            <p className="text-base text-text-primary font-medium">{ETAPAS[etapaIndex]}</p>
+            <p className="text-sm text-text-muted mt-3">
+              Tempo estimado: ~3 minutos por PDF. Não feche esta página.
+            </p>
+          </div>
         </div>
       )}
 
       {state === "done" && (
-        <div className="animate-slide-up max-w-2xl text-center py-12">
+        <div className="animate-slide-up text-center py-12">
           <CheckCircle size={48} className="text-success mx-auto mb-6" strokeWidth={1.5} />
           <h2 className="font-editorial text-2xl text-text-primary mb-2">Extração concluída</h2>
           <p className="text-sm text-text-secondary mb-8">Seu arquivo está pronto para download</p>
@@ -134,10 +142,11 @@ export default function BalancetePage({ onBack }: BalancetePageProps) {
       )}
 
       {state === "error" && (
-        <div className="animate-slide-up max-w-2xl text-center py-12">
+        <div className="animate-slide-up text-center py-12">
           <AlertCircle size={48} className="text-error mx-auto mb-6" strokeWidth={1.5} />
           <h2 className="font-editorial text-2xl text-text-primary mb-2">Erro na extração</h2>
-          <p className="text-sm text-text-secondary mb-8">{errorMsg}</p>
+          <p className="text-sm text-text-secondary mb-4">{errorMsg}</p>
+          <p className="text-xs text-text-muted mb-8">Se o erro persistir, tente com menos arquivos por vez.</p>
           <button onClick={handleReset} className="btn-primary">
             <RotateCcw size={16} />
             Tentar Novamente
