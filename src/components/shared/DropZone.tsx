@@ -46,18 +46,18 @@ export default function DropZone({ accept, multiple = true, label, sublabel, onF
       onDragOver={handleDrag}
       onDrop={handleDrop}
       className={`
-        border border-dashed cursor-pointer transition-all duration-200 py-16 px-8
+        border-2 border-dashed cursor-pointer transition-all duration-200 p-12 md:p-16
         flex flex-col items-center justify-center gap-4 text-center
         ${isDragging
           ? "border-accent bg-accent/5"
-          : "border-border-strong hover:border-accent/40 hover:bg-bg-secondary/50"
+          : "border-text-muted/30 hover:border-accent/40 hover:bg-bg-secondary/50"
         }
       `}
     >
       <Upload size={28} className="text-text-muted" />
       <div>
-        <p className="text-sm font-medium text-text-primary">{label}</p>
-        {sublabel && <p className="text-xs text-text-muted mt-1">{sublabel}</p>}
+        <p className="text-base font-medium text-text-primary">{label}</p>
+        {sublabel && <p className="text-sm text-text-secondary mt-1">{sublabel}</p>}
       </div>
       <input
         ref={inputRef}
