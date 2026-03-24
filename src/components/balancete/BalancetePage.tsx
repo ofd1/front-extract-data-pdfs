@@ -1,17 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { CheckCircle, AlertCircle, Download, RotateCcw, ArrowLeft, Loader2 } from "lucide-react";
 import type { BalanceteState } from "../../types";
-import { extractBalancete } from "../../api/balancete";
+import { startExtraction, pollJobStatus, downloadResult } from "../../api/balancete";
 import DropZone from "../shared/DropZone";
 import FileList from "../shared/FileList";
-
-const ETAPAS = [
-  "Enviando arquivos ao servidor...",
-  "Extraindo dados via IA — isso pode levar alguns minutos...",
-  "Processando páginas e normalizando valores...",
-  "Classificando contas contábeis...",
-  "Gerando Excel consolidado...",
-];
 
 interface BalancetePageProps {
   onBack: () => void;
@@ -20,36 +12,53 @@ interface BalancetePageProps {
 export default function BalancetePage({ onBack }: BalancetePageProps) {
   const [state, setState] = useState<BalanceteState>("upload");
   const [files, setFiles] = useState<File[]>([]);
-  const [etapaIndex, setEtapaIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [message, setMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const blobRef = useRef<Blob | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const jobIdRef = useRef<string | null>(null);
 
-  const clearInterval_ = () => {
+  const clearPolling = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   };
 
-  useEffect(() => () => clearInterval_(), []);
+  useEffect(() => () => clearPolling(), []);
 
   const handleExtract = useCallback(async () => {
     if (!files.length) return;
     setState("processing");
-    setEtapaIndex(0);
-
-    intervalRef.current = setInterval(() => {
-      setEtapaIndex((prev) => (prev + 1) % ETAPAS.length);
-    }, 15000);
+    setProgress(0);
+    setMessage("Enviando arquivos...");
 
     try {
-      const blob = await extractBalancete(files);
-      clearInterval_();
-      blobRef.current = blob;
-      setTimeout(() => setState("done"), 400);
+      const jobId = await startExtraction(files);
+      jobIdRef.current = jobId;
+
+      intervalRef.current = setInterval(async () => {
+        try {
+          const status = await pollJobStatus(jobId);
+          setProgress(status.progress);
+          setMessage(status.message);
+
+          if (status.status === "done") {
+            clearPolling();
+            const blob = await downloadResult(jobId);
+            blobRef.current = blob;
+            setState("done");
+          } else if (status.status === "error") {
+            clearPolling();
+            setErrorMsg(status.error || "Erro desconhecido");
+            setState("error");
+          }
+        } catch {
+          // Polling failure is not fatal — retries on next cycle
+        }
+      }, 3000);
     } catch (err) {
-      clearInterval_();
       setErrorMsg(err instanceof Error ? err.message : "Erro desconhecido");
       setState("error");
     }
@@ -66,11 +75,14 @@ export default function BalancetePage({ onBack }: BalancetePageProps) {
   };
 
   const handleReset = () => {
+    clearPolling();
     setState("upload");
     setFiles([]);
-    setEtapaIndex(0);
+    setProgress(0);
+    setMessage("");
     setErrorMsg("");
     blobRef.current = null;
+    jobIdRef.current = null;
   };
 
   return (
@@ -115,9 +127,18 @@ export default function BalancetePage({ onBack }: BalancetePageProps) {
         <div className="animate-slide-up text-center py-12 space-y-6">
           <Loader2 size={48} className="text-accent animate-spin mx-auto" strokeWidth={1.5} />
           <div>
-            <p className="text-base text-text-primary font-medium">{ETAPAS[etapaIndex]}</p>
+            <p className="text-base text-text-primary font-medium">{message}</p>
+            <div className="mt-4 mx-auto max-w-xs">
+              <div className="w-full bg-bg-secondary rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-accent h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${Math.round(progress * 100)}%` }}
+                />
+              </div>
+              <p className="text-sm text-text-muted mt-2">{Math.round(progress * 100)}%</p>
+            </div>
             <p className="text-sm text-text-muted mt-3">
-              Tempo estimado: ~3 minutos por PDF. Não feche esta página.
+              Não feche esta página.
             </p>
           </div>
         </div>
